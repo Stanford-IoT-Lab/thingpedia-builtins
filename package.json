@@ -1,0 +1,17 @@
+{
+  "name": "thingpedia-builtins",
+  "version": "1.0.0",
+  "description": "ThingPedia devices that are built in every ThingEngine installation",
+  "author": "Stanford Mobisocial lab",
+  "contributors": [
+    {
+      "name": "Giovanni Campagna",
+      "email": "gcampagn@cs.stanford.edu"
+    }
+  ],
+  "dependencies": {
+    "oauth": "~0.9.14",
+    "q": "~1.4.1",
+    "ip": "~1.1.0"
+  }
+}
