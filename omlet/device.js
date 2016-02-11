@@ -11,9 +11,7 @@ const lang = require('lang');
 const crypto = require('crypto');
 const Url = require('url');
 const Tp = require('thingpedia');
-
-// FIXME
-const omclient = require('thingengine-core/node_modules/omclient').client;
+const omclient = require('omclient').client;
 
 const OmletMessaging = require('./omlet_messaging');
 

@@ -10,5 +10,6 @@
     }
   ],
   "dependencies": {
+    "omclient": "https://github.com/Stanford-IoT-Lab/omclient/tarball/master"
   }
 }
