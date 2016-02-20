@@ -109,7 +109,7 @@ function runOAuth2Phase1(engine) {
 
         var origin = platform.getOrigin();
         return Q.ninvoke(client.auth, 'getAuthPage',
-                         origin + '/devices/oauth2/callback/omlet',
+                         origin + '/devices/oauth2/callback/org.thingpedia.builtin.omlet',
                          ['PublicProfile', 'OmletChat']);
     }).then(function(resp) {
         console.log('Obtained omlet auth page response');
@@ -143,7 +143,7 @@ function runOAuth2Phase2(engine, req) {
         client.onSignedUp = callback;
         client.auth.confirmAuth(code, key);
     }).then(function() {
-        return engine.devices.loadOneDevice({ kind: 'omlet',
+        return engine.devices.loadOneDevice({ kind: 'org.thingpedia.builtin.omlet',
                                               omletId: findPrimaryIdentity(client),
                                               instance: instance,
                                               storage: storage.serialize() }, true);
