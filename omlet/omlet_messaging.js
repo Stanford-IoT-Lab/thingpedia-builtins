@@ -52,12 +52,16 @@ const OmletFeed = new lang.Class({
         this._db = null;
         this.ownId = null;
 
+        this._lastMessage = 0;
         this._memberList = [];
         this._members = [];
         this.name = null;
     },
 
     _onInsert: function(o) {
+        if (o.serverTimestamp < this._lastMessage)
+            return;
+        this._lastMessage = o.serverTimestamp;
         this.emit('new-message', o);
         if (this.ownId !== o.senderId)
             this.emit('incoming-message', o);
@@ -84,6 +88,8 @@ const OmletFeed = new lang.Class({
             return this._messaging.getUserById(m);
         }, this)).then(function(users) {
             this._members = users;
+
+            console.log('New feed members', users.map(function(u) { return u.name; }));
         }.bind(this));
     },
 
