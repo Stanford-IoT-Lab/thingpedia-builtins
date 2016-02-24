@@ -72,7 +72,7 @@ const OmletFeed = new lang.Class({
     _updateMembers: function() {
         if (arrayEqual(this._memberList, this._feed.members))
             return Q();
-        this._memberList = this._feed.members;
+        this._memberList = this._feed.members.slice();
 
         var sortedList = new Array(this._memberList.length);
         for (var i = 0, j = 0; i < this._memberList.length; i++) {
