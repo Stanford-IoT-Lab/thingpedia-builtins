@@ -9,7 +9,7 @@
 const Tp = require('thingpedia');
 
 module.exports = new Tp.ChannelClass({
-    Name: 'SabrinaSayChannel',
+    Name: 'SabrinaPictureChannel',
     Extends: Tp.SimpleAction,
 
     _init: function(engine, device) {
@@ -17,10 +17,10 @@ module.exports = new Tp.ChannelClass({
         this.engine = engine;
     },
 
-    _doInvoke: function(message) {
-        this.engine.assistant.sendReply(message)
+    _doInvoke: function(url) {
+        this.engine.assistant.sendPicture(url)
         .catch(function(e) {
-            console.error('Failed to send message from Sabrina');
+            console.error('Failed to send picture from Sabrina');
             console.error(e.stack);
         });
     },
