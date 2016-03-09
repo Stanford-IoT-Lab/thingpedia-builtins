@@ -1,4 +1,7 @@
 {
   "name": "thingengine-device-thingengine",
-  "main": "device.js"
+  "main": "device.js",
+  "thingpedia-metadata": {
+    "types": []
+  }
 }

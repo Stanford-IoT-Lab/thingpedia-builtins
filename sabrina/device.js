@@ -14,23 +14,9 @@ module.exports = new Tp.DeviceClass({
     _init: function(engine, state) {
         this.parent(engine, state);
 
-        if (state.own) {
-            this.own = true;
-            this.globalName = 'sabrina';
-            this.uniqueId = 'thingengine-own-sabrina';
-        } else {
+        if (!state.own)
             throw new TypeError('Remote Sabrinas are not yet supported');
-        }
-    },
 
-    hasKind: function(kind) {
-        switch (kind) {
-        case 'thingengine-system':
-            return this.own;
-        case 'cloud-only':
-            return true;
-        default:
-            return this.parent(kind);
-        }
+        this.uniqueId = 'thingengine-own-sabrina';
     }
 });

@@ -165,7 +165,6 @@ module.exports = new Tp.DeviceClass({
         this.parent(engine, state);
 
         this._updateNameAndDescription();
-        this.globalName = 'omlet';
         this.uniqueId = 'omlet-' + this.omletInstance;
 
         this._omletStorage = null;
@@ -237,16 +236,6 @@ module.exports = new Tp.DeviceClass({
             if (this._omletClientCount == 0)
                 client.disable();
         }, 5000);
-    },
-
-    hasKind: function(kind) {
-        switch(kind) {
-        case 'online-account':
-        case 'messaging':
-            return true;
-        default:
-            return this.parent(kind);
-        }
     },
 
     queryInterface: function(iface) {
