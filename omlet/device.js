@@ -250,4 +250,25 @@ module.exports = new Tp.DeviceClass({
     checkAvailable: function() {
         return Tp.Availability.AVAILABLE;
     },
+
+    _doSend: function(event) {
+        if (event.length < 3)
+            throw new TypeError('Invalid arguments to @omlet.send(), expected feed, type, message');
+
+        var feed = event[0];
+        var msgType = event[1];
+        var msg = event[2];
+
+        if (msgType === 'text')
+            feed.sendText(msg).done();
+        else if (msgType === 'picture')
+            feed.sendPicture(msg).done();
+        else
+            throw new TypeError('Invalid message type, expected text or picture');
+    },
+
+    invokeAction: function(name, args) {
+        if (name === 'send')
+            return this._doSend(args);
+    }
 });
