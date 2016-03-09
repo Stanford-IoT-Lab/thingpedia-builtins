@@ -14,9 +14,22 @@ const Tp = require('thingpedia');
 const omclient = require('omclient').client;
 
 const OmletMessaging = require('./omlet_messaging');
+const InMessageChannel = require('./inmessage');
 
 const API_KEY = '00109b1ea59d9f46d571834870f0168b5ed20005871d8752ff';
 const API_SECRET = 'bccb852856c462e748193d6211c730199d62adcf0ba963416fcc715a2db4d76f';
+
+const IncomingMessageChannel = new Tp.ChannelClass({
+    Name: 'IncomingMessageChannel',
+    Extends: InMessageChannel,
+    signal: 'incoming-message',
+});
+
+const NewMessageChannel = new Tp.ChannelClass({
+    Name: 'NewMessageChannel',
+    Extends: InMessageChannel,
+    signal: 'new-message',
+});
 
 const DeviceStateStorage = new lang.Class({
     Name: 'DeviceStateStorage',
@@ -265,6 +278,15 @@ module.exports = new Tp.DeviceClass({
             feed.sendPicture(msg).done();
         else
             throw new TypeError('Invalid message type, expected text or picture');
+    },
+
+    getTriggerClass: function(name) {
+        if (name === 'incomingmessage')
+            return IncomingMessageChannel;
+        else if (name === 'newmessage')
+            return NewMessageChannel;
+        else
+            throw new Error('Invalid channel name ' + name);
     },
 
     invokeAction: function(name, args) {
