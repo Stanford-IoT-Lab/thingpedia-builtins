@@ -15,10 +15,11 @@ const FeedMessageChannel = new lang.Class({
     Name: 'FeedMessageChannel',
     Extends: events.EventEmitter,
 
-    _init: function(feed, signal) {
+    _init: function(feed, device, signal) {
         events.EventEmitter.call(this);
 
         this._feed = feed;
+        this.device = device;
         this.signal = signal;
 
         this._listener = this._onMsg.bind(this);
@@ -63,8 +64,9 @@ const AllFeedsChannel = new lang.Class({
     Name: 'AllFeedsChannel',
     Extends: events.EventEmitter,
 
-    _init: function(engine, signal) {
+    _init: function(engine, device, signal) {
         this._messaging = engine.messaging;
+        this.device = device;
         this.signal = signal;
 
         this._feeds = {};
@@ -75,7 +77,7 @@ const AllFeedsChannel = new lang.Class({
     },
 
     _onFeedAdded: function(feedId) {
-        var channel = new FeedMessageChannel(this._messaging.getFeed(feedId), this.signal);
+        var channel = new FeedMessageChannel(this._messaging.getFeed(feedId), this.device, this.signal);
         channel.on('event', this._onMsg.bind(this));
 
         this._feeds[feedId] = channel;
@@ -125,9 +127,9 @@ module.exports = new lang.Class({
 
             this._feed = params[0].value;
             this.filterString = 'feed-' + this._feed.feedId.replace(/[^a-zA-Z0-9]+/g, '-');
-            this._channel = new FeedMessageChannel(this._feed, this.signal);
+            this._channel = new FeedMessageChannel(this._feed, this.device, this.signal);
         } else {
-            this._channel = new AllFeedsChannel(this.engine, this.signal);
+            this._channel = new AllFeedsChannel(this.engine, this.device, this.signal);
         }
 
         this._channel.on('event', this._onEvent.bind(this));
