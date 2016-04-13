@@ -9,6 +9,7 @@
 const Q = require('q');
 const lang = require('lang');
 const crypto = require('crypto');
+const fs = require('fs');
 const Url = require('url');
 const Tp = require('thingpedia');
 const omclient = require('omclient').client;
@@ -78,9 +79,21 @@ const DeviceStateStorage = new lang.Class({
     }
 });
 
-function makeOmletClient(instance, storage, sync) {
+function safeMkdirSync(dir) {
+    try {
+        fs.mkdirSync(dir);
+    } catch(e) {
+        if (e.code !== 'EEXIST')
+            throw e;
+    }
+}
+
+function makeOmletClient(instance, platform, storage, sync) {
+    var dbpath = platform.getWritableDir() + '/omlet-' + instance;
+    safeMkdirSync(dbpath);
     var client = new omclient.Client({ instance: instance,
                                        storage: storage,
+                                       dbpath: dbpath,
                                        sync: sync,
                                        apiKey: { Id: API_KEY, Secret: API_SECRET } });
     client.longdanMessageConsumer.DEBUG = false;
@@ -114,7 +127,7 @@ function findPrimaryIdentity(client) {
 function runOAuth2Phase1(engine) {
     var buf = crypto.randomBytes(8).toString('hex');
     var storage = new DeviceStateStorage(null, undefined);
-    var client = makeOmletClient(buf, storage, false);
+    var client = makeOmletClient(buf, engine.platform, storage, false);
     console.log('Obtained omlet Client');
 
     return Q.try(function() {
@@ -144,7 +157,7 @@ function runOAuth2Phase2(engine, req) {
     var storageState = JSON.parse(req.session['omlet-storage']);
     var instance = req.session['omlet-instance'];
     var storage = new DeviceStateStorage(null, storageState);
-    var client = makeOmletClient(instance, storage, false);
+    var client = makeOmletClient(instance, engine.platform, storage, false);
     console.log('Obtained omlet Client');
 
     var code = req.query.code;
@@ -220,7 +233,7 @@ module.exports = new Tp.DeviceClass({
         if (this._omletClient !== null)
             return this._omletClient;
 
-        this._omletClient = makeOmletClient(this.omletInstance, this.omletStorage, false);
+        this._omletClient = makeOmletClient(this.omletInstance, this.engine.platform, this.omletStorage, false);
         return this._omletClient;
     },
 
