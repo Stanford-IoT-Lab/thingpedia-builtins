@@ -6,6 +6,7 @@
 //                Jiwon Seo <jiwon@cs.stanford.edu>
 //
 // See COPYING for details
+"use strict";
 
 const Q = require('q');
 const Tp = require('thingpedia');

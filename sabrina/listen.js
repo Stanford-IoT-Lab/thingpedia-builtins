@@ -5,6 +5,7 @@
 // Copyright 2015 Giovanni Campagna <gcampagn@cs.stanford.edu>
 //
 // See COPYING for details
+"use strict";
 
 const Tp = require('thingpedia');
 const Q = require('q');

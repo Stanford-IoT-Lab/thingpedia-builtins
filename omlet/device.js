@@ -5,14 +5,14 @@
 // Copyright 2015 Giovanni Campagna <gcampagn@cs.stanford.edu>
 //
 // See COPYING for details
+"use strict";
 
 const Q = require('q');
-const lang = require('lang');
 const crypto = require('crypto');
 const fs = require('fs');
 const Url = require('url');
 const Tp = require('thingpedia');
-const omclient = require('omclient').client;
+const Omlib = require('omlib');
 
 const OmletMessaging = require('./omlet_messaging');
 const InMessageChannel = require('./inmessage');
@@ -32,52 +32,51 @@ const NewMessageChannel = new Tp.ChannelClass({
     signal: 'new-message',
 });
 
-const DeviceStateStorage = new lang.Class({
-    Name: 'DeviceStateStorage',
-
-    _init: function(device, backingObject) {
+class DeviceStateStorage {
+    constructor(device, backingObject) {
         this._device = device;
         this._storage = backingObject || {};
         this._stateChangedQueued = false;
-    },
+    }
 
-    _queueStateChanged: function() {
+    _queueStateChanged() {
         if (this._stateChangedQueued)
             return;
 
         this._stateChangedQueued = true;
-        setTimeout(function() {
+        setTimeout(() => {
             if (this._device !== null)
                 this._device.stateChanged();
-        }.bind(this), 0);
-    },
+        }, 0);
+    }
 
-    serialize: function() {
+    serialize() {
         return this._storage;
-    },
-    setBackingStorage: function(storage) {
-        this._storage = storage;
-    },
+    }
 
-    key: function(idx) {
+    setBackingStorage(storage) {
+        this._storage = storage;
+    }
+
+    key(idx) {
         return Object.keys(this._storage)[idx];
-    },
-    getItem: function(key) {
+    }
+    getItem(key) {
         return this._storage[key];
-    },
-    setItem: function(key, value) {
+    }
+    setItem(key, value) {
         this._storage[key] = value;
         this._queueStateChanged();
-    },
-    removeItem: function(key) {
+    }
+    removeItem(key) {
         delete this._storage[key];
         this._queueStateChanged();
-    },
-    clear: function() {
+    }
+    clear() {
         this._storage = {};
         this._queueStateChanged();
     }
-});
+}
 
 function safeMkdirSync(dir) {
     try {
@@ -88,21 +87,23 @@ function safeMkdirSync(dir) {
     }
 }
 
-function makeOmletClient(instance, platform, storage, sync) {
-    var dbpath = platform.getWritableDir() + '/omlet-' + instance;
+function makeOmletClient(instance, platform, storage) {
+    var dbpath = platform.getWritableDir() + '/omlet';
     safeMkdirSync(dbpath);
-    var client = new omclient.Client({ instance: instance,
-                                       storage: storage,
-                                       dbpath: dbpath,
-                                       sync: sync,
-                                       apiKey: { Id: API_KEY, Secret: API_SECRET } });
-    client.longdanMessageConsumer.DEBUG = false;
+    var client = new Omlib({ instance: instance,
+                             storage: storage,
+                             storagePath: dbpath,
+                             sync: false,
+                             apiKey: { Id: API_KEY, Secret: API_SECRET } });
+    client._ldClient.longdanMessageConsumer.DEBUG = false;
     return client;
 }
 
 function findPrimaryIdentity(client) {
-    var account = client.account;
-    var identities = client._details.Identities;
+    if (!client._ldClient._details)
+        return undefined;
+    var account = client.auth.getAccount();
+    var identities = client._ldClient._details.Identities;
     var omletId = null;
     var email = null;
     var phone = null;
@@ -127,14 +128,14 @@ function findPrimaryIdentity(client) {
 function runOAuth2Phase1(engine) {
     var buf = crypto.randomBytes(8).toString('hex');
     var storage = new DeviceStateStorage(null, undefined);
-    var client = makeOmletClient(buf, engine.platform, storage, false);
+    var client = makeOmletClient(buf, engine.platform, storage);
     console.log('Obtained omlet Client');
 
     return Q.try(function() {
-        client.enable();
+        client.connect();
 
-        var origin = platform.getOrigin();
-        return Q.ninvoke(client.auth, 'getAuthPage',
+        var origin = engine.platform.getOrigin();
+        return Q.ninvoke(client._ldClient.auth, 'getAuthPage',
                          origin + '/devices/oauth2/callback/org.thingpedia.builtin.omlet',
                          ['PublicProfile', 'OmletChat']);
     }).then(function(resp) {
@@ -157,17 +158,17 @@ function runOAuth2Phase2(engine, req) {
     var storageState = JSON.parse(req.session['omlet-storage']);
     var instance = req.session['omlet-instance'];
     var storage = new DeviceStateStorage(null, storageState);
-    var client = makeOmletClient(instance, engine.platform, storage, false);
+    var client = makeOmletClient(instance, engine.platform, storage);
     console.log('Obtained omlet Client');
 
     var code = req.query.code;
     var key = req.session['omlet-query-key'];
 
     return Q.Promise(function(callback, errback) {
-        client.enable();
+        client.connect();
 
-        client.onSignedUp = callback;
-        client.auth.confirmAuth(code, key);
+        client._ldClient.onSignedUp = callback;
+        client._ldClient.auth.confirmAuth(code, key);
     }).then(function() {
         return engine.devices.loadOneDevice({ kind: 'org.thingpedia.builtin.omlet',
                                               omletId: findPrimaryIdentity(client),
@@ -221,19 +222,12 @@ module.exports = new Tp.DeviceClass({
         return this.state.omletId;
     },
 
-    get omletStorage() {
-        if (this._omletStorage !== null)
-            return this._omletStorage;
-
-        this._omletStorage = new DeviceStateStorage(this, this.state.storage);
-        return this._omletStorage;
-    },
-
     get omletClient() {
         if (this._omletClient !== null)
             return this._omletClient;
 
-        this._omletClient = makeOmletClient(this.omletInstance, this.engine.platform, this.omletStorage, false);
+        this._omletStorage = new DeviceStateStorage(this, this.state.storage);
+        this._omletClient = makeOmletClient(this.omletInstance, this.engine.platform, this._omletStorage);
         return this._omletClient;
     },
 
@@ -241,9 +235,9 @@ module.exports = new Tp.DeviceClass({
         var client = this.omletClient;
 
         if (this._omletClientCount == 0) {
-            client.enable();
+            client.connect();
             var identity = findPrimaryIdentity(client);
-            if (identity !== this.state.omletId) {
+            if (identity !== undefined && identity !== this.state.omletId) {
                 console.log('Omlet ID of ' + this.uniqueId + ' changed to ' + identity);
                 this.state.omletId = identity;
                 this._updateNameAndDescription();
@@ -255,12 +249,12 @@ module.exports = new Tp.DeviceClass({
     },
 
     unrefOmletClient: function() {
-        var client = this.omletClient;
-
-        setTimeout(function() {
+        setTimeout(() => {
             this._omletClientCount --;
-            if (this._omletClientCount == 0)
-                client.disable();
+            if (this._omletClientCount == 0) {
+                this._omletClient = null;
+                this.omletClient.disable();
+            }
         }, 5000);
     },
 

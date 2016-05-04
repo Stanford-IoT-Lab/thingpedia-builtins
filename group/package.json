@@ -1,7 +1,0 @@
-{
-  "name": "thingengine-device-group",
-  "main": "device.js",
-  "thingpedia-metadata": {
-    "types": []
-  }
-}

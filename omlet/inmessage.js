@@ -6,37 +6,34 @@
 //                Jiwon Seo <jiwon@cs.stanford.edu>
 //
 // See COPYING for details
+"use strict";
 
-const lang = require('lang');
 const events = require('events');
 const Tp = require('thingpedia');
 
-const FeedMessageChannel = new lang.Class({
-    Name: 'FeedMessageChannel',
-    Extends: events.EventEmitter,
-
-    _init: function(feed, device, signal) {
-        events.EventEmitter.call(this);
+class FeedMessageChannel extends events.EventEmitter {
+    constructor(feed, device, signal) {
+        super();
 
         this._feed = feed;
         this.device = device;
         this.signal = signal;
 
         this._listener = this._onMsg.bind(this);
-    },
+    }
 
-    open: function() {
+    open() {
         return this._feed.open().then(function() {
             this._feed.on(this.signal, this._listener);
         }.bind(this));
-    },
+    }
 
-    close: function() {
+    close() {
         this._feed.removeListener(this.signal, this._listener);
         return this._feed.close();
-    },
+    }
 
-    _onMsg: function(msg) {
+    _onMsg(msg) {
         if (msg.hidden)
             return;
         //console.log('Received message', msg);
@@ -57,40 +54,39 @@ const FeedMessageChannel = new lang.Class({
         } else if (msg.type === 'text') {
             this.emit('event', [this._feed, 'text', msg.text]);
         }
-    },
-});
+    }
+}
 
-const AllFeedsChannel = new lang.Class({
-    Name: 'AllFeedsChannel',
-    Extends: events.EventEmitter,
+class AllFeedsChannel extends events.EventEmitter {
+    constructor(engine, device, signal) {
+        super();
 
-    _init: function(engine, device, signal) {
         this._messaging = engine.messaging;
         this.device = device;
         this.signal = signal;
 
         this._feeds = {};
-    },
+    }
 
-    _onMsg: function(event) {
+    _onMsg(event) {
         this.emit('event', event);
-    },
+    }
 
-    _onFeedAdded: function(feedId) {
+    _onFeedAdded(feedId) {
         var channel = new FeedMessageChannel(this._messaging.getFeed(feedId), this.device, this.signal);
         channel.on('event', this._onMsg.bind(this));
 
         this._feeds[feedId] = channel;
         channel.open().done();
-    },
+    }
 
-    _onFeedRemoved: function(feedId) {
+    _onFeedRemoved(feedId) {
         var channel = this._feeds[feedId];
         delete this._feeds[feedId];
         channel.close().done();
-    },
+    }
 
-    open: function() {
+    open() {
         this._feedAddedListener = this._onFeedAdded.bind(this);
         this._feedRemovedListener = this._onFeedRemoved.bind(this);
         this._messaging.on('feed-added', this._feedAddedListener);
@@ -101,20 +97,19 @@ const AllFeedsChannel = new lang.Class({
                 this._onFeedAdded(feedId);
             }, this);
         }.bind(this));
-    },
+    }
 
-    close: function() {
+    close() {
         this._messaging.removeListener('feed-added', this._feedAddedListener);
         this._messaging.removeListener('feed-removed', this._feedRemovedListener);
         for (var feedId in this._feeds)
             this._onFeedRemoved(feedId);
         this._feeds = {};
     }
-});
+}
 
-module.exports = new lang.Class({
+module.exports = new Tp.ChannelClass({
     Name: 'InMessageChannel',
-    Extends: Tp.BaseChannel,
 
     _init: function(engine, device, params) {
         this.parent();
