@@ -80,6 +80,9 @@ module.exports = new Tp.DeviceClass({
         } else if (this.tier === Tp.Tier.GLOBAL) {
             throw new TypeError('Global foreign ThingEngine do not exist');
         }
+
+        if (this.tier === Tp.Tier.PHONE && this.own)
+            this.globalName = 'phone';
     },
 
     get ownerTier() {
@@ -115,6 +118,8 @@ module.exports = new Tp.DeviceClass({
             return this.tier === Tp.Tier.CLOUD;
         case 'thingengine-global':
             return this.tier === Tp.Tier.GLOBAL;
+        case 'phone':
+            return this.tier === Tp.Tier.PHONE && this.own;
         default:
             return this.parent(kind);
         }
